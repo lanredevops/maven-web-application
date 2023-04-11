@@ -1,0 +1,34 @@
+node{
+	def mavenHome = tool name: '3.9.1'
+   stage('1.CodeClone'){
+ git credentialsId: 'github', url: 'https://github.com/lanredevops/maven-web-application.git'
+    }
+  stage('2MavenBuild'){
+  sh "${mavenHome}/bin/mvn package"
+    }
+    stage('3CodeQualityAnalysis'){
+  sh "${mavenHome}/bin/mvn sonar:sonar"
+    }
+   stage('4UploadArtifacts'){
+  sh "${mavenHome}/bin/mvn deploy"
+    } 
+     stage('5Deploy2UAT'){
+  deploy adapters: [tomcat9(credentialsId: 'tomcat', path: '', url: 'http://54.160.93.253:8177/')], contextPath: null, war: 'target/*war'
+    }
+     stage('6Manualapproval'){
+  sh "echo 'Application ready for review' "
+  timeout(time:5, unit:'HOURS') {
+  input message: 'Application ready for deployment,Please review and approve'
+   }
+       }
+       stage('7Deploy2prod'){
+  deploy adapters: [tomcat9(credentialsId: 'tomcat', path: '', url: 'http://54.160.93.253:8177/')], contextPath: null, war: 'target/*war'
+    }
+    stage('8emailNotification'){
+    emailext body: '''Hello Team
+
+Build is done
+
+Lanredev0ps''', recipientProviders: [developers(), contributor()], subject: 'Build Status', to: 'xcessluv@gmail.com'
+   } 
+     }   
